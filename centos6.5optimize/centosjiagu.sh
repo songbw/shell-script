@@ -67,15 +67,23 @@ echo '* hard nofile 65536'>>/etc/security/limits.conf
 echo 'auth required pam_tally2.so deny=5 unlock_time=180 even_deny_root root_unlock_time=180'>>/etc/pam.d/login
 
 ipAdd=$(ifconfig eth0 | sed -n "2,2p" | awk '{print $2}')
-echo "$ip1"
 OLD_IFS="$IFS"
 IFS="."
 port1=($ipAdd)
+port3=${port1[3]}
+len=`expr length $port3`
+if [[ "$len" = 1 ]]; then
+        port3=00$port3
+fi
+if [[ "$len" = 2 ]]; then
+	port3=0$port3
+fi
+
 
 sed -i 's/#PermitRootLogin yes/PermitRootLogin no/g' /etc/ssh/sshd_config
 sed -i 's/#PermitEmptyPasswords no/PermitEmptyPasswords no/g' /etc/ssh/sshd_config
 sed -i 's/#UseDNS yes/UseDNS no/g' /etc/ssh/sshd_config
-sed -i "s/#Port 22/Port 22${port1[3]}/g" /etc/ssh/sshd_config
+sed -i "s/#Port 22/Port 22$port3/g" /etc/ssh/sshd_config
 /etc/init.d/sshd reload
 
 #iptables config
@@ -89,5 +97,4 @@ sed -i "s/#Port 22/Port 22${port1[3]}/g" /etc/ssh/sshd_config
 echo "alias vi='vim'">>/root/.bashrc
 source /root/.bashrc
 
-#格式化，挂载数据盘
 if grep -q /data /etc/fstab ; then uuid=notneed; echo /data already in fstab; else uuid=`mkfs.ext3 /dev/vdb > /dev/null 2>&1 && blkid /dev/vdb | awk '{print $2}'`;fi;if [[ $uuid == UUID* ]]; then echo $uuid /data ext3 noatime,acl,user_xattr 1 0 >> /etc/fstab; mount -a; else echo mkfs failed; fi;
